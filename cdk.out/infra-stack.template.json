@@ -1,0 +1,653 @@
+{
+ "Resources": {
+  "ApprovedArtifactsBucketA66E700D": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "BucketName": "posd-approved-artifacts-bucket"
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/ApprovedArtifactsBucket/Resource"
+   }
+  },
+  "posdannouncementstableCACBA7F5": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "KeySchema": [
+     {
+      "AttributeName": "announcement",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "date",
+      "KeyType": "RANGE"
+     }
+    ],
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "announcement",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "date",
+      "AttributeType": "S"
+     }
+    ],
+    "ProvisionedThroughput": {
+     "ReadCapacityUnits": 5,
+     "WriteCapacityUnits": 5
+    },
+    "StreamSpecification": {
+     "StreamViewType": "NEW_IMAGE"
+    }
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/posd-announcements-table/Resource"
+   }
+  },
+  "MyLambdaFunctionServiceRole313A4D46": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/MyLambdaFunction/ServiceRole/Resource"
+   }
+  },
+  "MyLambdaFunctionServiceRoleDefaultPolicy23555F9E": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "posdannouncementstableCACBA7F5",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      },
+      {
+       "Action": "dynamodb:ListStreams",
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "dynamodb:DescribeStream",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "posdannouncementstableCACBA7F5",
+         "StreamArn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "MyLambdaFunctionServiceRoleDefaultPolicy23555F9E",
+    "Roles": [
+     {
+      "Ref": "MyLambdaFunctionServiceRole313A4D46"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/MyLambdaFunction/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "MyLambdaFunction67CCA873": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "ZipFile": "\n                def handler(event, context):\n                    print(\"Event:\", event)\n                    return {\"message\": \"Successfully wrote event to the console\"}\n                "
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "MyLambdaFunctionServiceRole313A4D46",
+      "Arn"
+     ]
+    },
+    "Handler": "index.handler",
+    "Runtime": "python3.8"
+   },
+   "DependsOn": [
+    "MyLambdaFunctionServiceRoleDefaultPolicy23555F9E",
+    "MyLambdaFunctionServiceRole313A4D46"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/MyLambdaFunction/Resource"
+   }
+  },
+  "MyLambdaFunctionDynamoDBEventSourceinfrastackposdannouncementstableA7CCBB7E604EC142": {
+   "Type": "AWS::Lambda::EventSourceMapping",
+   "Properties": {
+    "FunctionName": {
+     "Ref": "MyLambdaFunction67CCA873"
+    },
+    "BatchSize": 5,
+    "BisectBatchOnFunctionError": true,
+    "EventSourceArn": {
+     "Fn::GetAtt": [
+      "posdannouncementstableCACBA7F5",
+      "StreamArn"
+     ]
+    },
+    "MaximumRetryAttempts": 10,
+    "StartingPosition": "TRIM_HORIZON"
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/MyLambdaFunction/DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E/Resource"
+   }
+  },
+  "EngineerRoleBD333EB3": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": "arn:aws:iam::593177338706:user/Admin"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "RoleName": "EngineerRole"
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/EngineerRole/Resource"
+   }
+  },
+  "EngineerRoleDefaultPolicyBBDD1113": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "ApprovedArtifactsBucketA66E700D",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "posdannouncementstableCACBA7F5",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "EngineerRoleDefaultPolicyBBDD1113",
+    "Roles": [
+     {
+      "Ref": "EngineerRoleBD333EB3"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/EngineerRole/DefaultPolicy/Resource"
+   }
+  },
+  "SupportEngineerRoleC63476AA": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": "arn:aws:iam::593177338706:user/Admin"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "RoleName": "SupportEngineerRole"
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/SupportEngineerRole/Resource"
+   }
+  },
+  "SupportEngineerRoleDefaultPolicy0358290E": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "ApprovedArtifactsBucketA66E700D",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "posdannouncementstableCACBA7F5",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "SupportEngineerRoleDefaultPolicy0358290E",
+    "Roles": [
+     {
+      "Ref": "SupportEngineerRoleC63476AA"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/SupportEngineerRole/DefaultPolicy/Resource"
+   }
+  },
+  "HumanResourcesRoleE413CEC3": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": "arn:aws:iam::593177338706:user/Admin"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "RoleName": "HumanResourcesRole"
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/HumanResourcesRole/Resource"
+   }
+  },
+  "HumanResourcesRoleDefaultPolicyE691046D": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "posdannouncementstableCACBA7F5",
+          "Arn"
+         ]
+        },
+        {
+         "Ref": "AWS::NoValue"
+        }
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "HumanResourcesRoleDefaultPolicyE691046D",
+    "Roles": [
+     {
+      "Ref": "HumanResourcesRoleE413CEC3"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/HumanResourcesRole/DefaultPolicy/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WNwQrCMBBEv8V7uopFoVeL3oTSepc0ibq23ZQ2VUrIv9skIIKneTszu7uFXQabFX+PiZBN0mINtjJcNGyxrnZMwR4m0SjD8htFckzOxDstl+qF163yUQDHWt7VkoM9TSQMavLRl48vRabS0yDUmfc90t3H/65jyDuwpY6ngxa6RTH7MZJzrFRj2AqdH841SfQPHStm89C0TiGD/eo5IibDRAY7BWXUDzgKN+3/AAAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "infra-stack/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-2"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

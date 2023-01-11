@@ -1,0 +1,696 @@
+{
+  "version": "tree-0.1",
+  "tree": {
+    "id": "App",
+    "path": "",
+    "children": {
+      "infra-stack": {
+        "id": "infra-stack",
+        "path": "infra-stack",
+        "children": {
+          "ApprovedArtifactsBucket": {
+            "id": "ApprovedArtifactsBucket",
+            "path": "infra-stack/ApprovedArtifactsBucket",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "infra-stack/ApprovedArtifactsBucket/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::S3::Bucket",
+                  "aws:cdk:cloudformation:props": {
+                    "bucketName": "posd-approved-artifacts-bucket"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_s3.CfnBucket",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_s3.Bucket",
+              "version": "2.59.0"
+            }
+          },
+          "posd-announcements-table": {
+            "id": "posd-announcements-table",
+            "path": "infra-stack/posd-announcements-table",
+            "children": {
+              "Resource": {
+                "id": "Resource",
+                "path": "infra-stack/posd-announcements-table/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::DynamoDB::Table",
+                  "aws:cdk:cloudformation:props": {
+                    "keySchema": [
+                      {
+                        "attributeName": "announcement",
+                        "keyType": "HASH"
+                      },
+                      {
+                        "attributeName": "date",
+                        "keyType": "RANGE"
+                      }
+                    ],
+                    "attributeDefinitions": [
+                      {
+                        "attributeName": "announcement",
+                        "attributeType": "S"
+                      },
+                      {
+                        "attributeName": "date",
+                        "attributeType": "S"
+                      }
+                    ],
+                    "provisionedThroughput": {
+                      "readCapacityUnits": 5,
+                      "writeCapacityUnits": 5
+                    },
+                    "streamSpecification": {
+                      "streamViewType": "NEW_IMAGE"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_dynamodb.CfnTable",
+                  "version": "2.59.0"
+                }
+              },
+              "ScalingRole": {
+                "id": "ScalingRole",
+                "path": "infra-stack/posd-announcements-table/ScalingRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_dynamodb.Table",
+              "version": "2.59.0"
+            }
+          },
+          "MyLambdaFunction": {
+            "id": "MyLambdaFunction",
+            "path": "infra-stack/MyLambdaFunction",
+            "children": {
+              "ServiceRole": {
+                "id": "ServiceRole",
+                "path": "infra-stack/MyLambdaFunction/ServiceRole",
+                "children": {
+                  "ImportServiceRole": {
+                    "id": "ImportServiceRole",
+                    "path": "infra-stack/MyLambdaFunction/ServiceRole/ImportServiceRole",
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.Resource",
+                      "version": "2.59.0"
+                    }
+                  },
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "infra-stack/MyLambdaFunction/ServiceRole/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                      "aws:cdk:cloudformation:props": {
+                        "assumeRolePolicyDocument": {
+                          "Statement": [
+                            {
+                              "Action": "sts:AssumeRole",
+                              "Effect": "Allow",
+                              "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                              }
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "managedPolicyArns": [
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "arn:",
+                                {
+                                  "Ref": "AWS::Partition"
+                                },
+                                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                      "version": "2.59.0"
+                    }
+                  },
+                  "DefaultPolicy": {
+                    "id": "DefaultPolicy",
+                    "path": "infra-stack/MyLambdaFunction/ServiceRole/DefaultPolicy",
+                    "children": {
+                      "Resource": {
+                        "id": "Resource",
+                        "path": "infra-stack/MyLambdaFunction/ServiceRole/DefaultPolicy/Resource",
+                        "attributes": {
+                          "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                          "aws:cdk:cloudformation:props": {
+                            "policyDocument": {
+                              "Statement": [
+                                {
+                                  "Action": [
+                                    "dynamodb:BatchGetItem",
+                                    "dynamodb:ConditionCheckItem",
+                                    "dynamodb:DescribeTable",
+                                    "dynamodb:GetItem",
+                                    "dynamodb:GetRecords",
+                                    "dynamodb:GetShardIterator",
+                                    "dynamodb:Query",
+                                    "dynamodb:Scan"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": [
+                                    {
+                                      "Fn::GetAtt": [
+                                        "posdannouncementstableCACBA7F5",
+                                        "Arn"
+                                      ]
+                                    },
+                                    {
+                                      "Ref": "AWS::NoValue"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "Action": "dynamodb:ListStreams",
+                                  "Effect": "Allow",
+                                  "Resource": "*"
+                                },
+                                {
+                                  "Action": [
+                                    "dynamodb:DescribeStream",
+                                    "dynamodb:GetRecords",
+                                    "dynamodb:GetShardIterator"
+                                  ],
+                                  "Effect": "Allow",
+                                  "Resource": {
+                                    "Fn::GetAtt": [
+                                      "posdannouncementstableCACBA7F5",
+                                      "StreamArn"
+                                    ]
+                                  }
+                                }
+                              ],
+                              "Version": "2012-10-17"
+                            },
+                            "policyName": "MyLambdaFunctionServiceRoleDefaultPolicy23555F9E",
+                            "roles": [
+                              {
+                                "Ref": "MyLambdaFunctionServiceRole313A4D46"
+                              }
+                            ]
+                          }
+                        },
+                        "constructInfo": {
+                          "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                          "version": "2.59.0"
+                        }
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.Policy",
+                      "version": "2.59.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Role",
+                  "version": "2.59.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "infra-stack/MyLambdaFunction/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
+                  "aws:cdk:cloudformation:props": {
+                    "code": {
+                      "zipFile": "\n                def handler(event, context):\n                    print(\"Event:\", event)\n                    return {\"message\": \"Successfully wrote event to the console\"}\n                "
+                    },
+                    "role": {
+                      "Fn::GetAtt": [
+                        "MyLambdaFunctionServiceRole313A4D46",
+                        "Arn"
+                      ]
+                    },
+                    "handler": "index.handler",
+                    "runtime": "python3.8"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_lambda.CfnFunction",
+                  "version": "2.59.0"
+                }
+              },
+              "DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E": {
+                "id": "DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E",
+                "path": "infra-stack/MyLambdaFunction/DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "infra-stack/MyLambdaFunction/DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::Lambda::EventSourceMapping",
+                      "aws:cdk:cloudformation:props": {
+                        "functionName": {
+                          "Ref": "MyLambdaFunction67CCA873"
+                        },
+                        "batchSize": 5,
+                        "bisectBatchOnFunctionError": true,
+                        "eventSourceArn": {
+                          "Fn::GetAtt": [
+                            "posdannouncementstableCACBA7F5",
+                            "StreamArn"
+                          ]
+                        },
+                        "maximumRetryAttempts": 10,
+                        "startingPosition": "TRIM_HORIZON"
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_lambda.CfnEventSourceMapping",
+                      "version": "2.59.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_lambda.EventSourceMapping",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_lambda.Function",
+              "version": "2.59.0"
+            }
+          },
+          "EngineerRole": {
+            "id": "EngineerRole",
+            "path": "infra-stack/EngineerRole",
+            "children": {
+              "ImportEngineerRole": {
+                "id": "ImportEngineerRole",
+                "path": "infra-stack/EngineerRole/ImportEngineerRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.59.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "infra-stack/EngineerRole/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:props": {
+                    "assumeRolePolicyDocument": {
+                      "Statement": [
+                        {
+                          "Action": "sts:AssumeRole",
+                          "Effect": "Allow",
+                          "Principal": {
+                            "AWS": "arn:aws:iam::593177338706:user/Admin"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    },
+                    "roleName": "EngineerRole"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "version": "2.59.0"
+                }
+              },
+              "DefaultPolicy": {
+                "id": "DefaultPolicy",
+                "path": "infra-stack/EngineerRole/DefaultPolicy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "infra-stack/EngineerRole/DefaultPolicy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                      "aws:cdk:cloudformation:props": {
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "s3:GetObject",
+                                "s3:ListBucket"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::GetAtt": [
+                                  "ApprovedArtifactsBucketA66E700D",
+                                  "Arn"
+                                ]
+                              }
+                            },
+                            {
+                              "Action": [
+                                "dynamodb:BatchGetItem",
+                                "dynamodb:ConditionCheckItem",
+                                "dynamodb:DescribeTable",
+                                "dynamodb:GetItem",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:Query",
+                                "dynamodb:Scan"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "posdannouncementstableCACBA7F5",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Ref": "AWS::NoValue"
+                                }
+                              ]
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "policyName": "EngineerRoleDefaultPolicyBBDD1113",
+                        "roles": [
+                          {
+                            "Ref": "EngineerRoleBD333EB3"
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                      "version": "2.59.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Policy",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "version": "2.59.0"
+            }
+          },
+          "SupportEngineerRole": {
+            "id": "SupportEngineerRole",
+            "path": "infra-stack/SupportEngineerRole",
+            "children": {
+              "ImportSupportEngineerRole": {
+                "id": "ImportSupportEngineerRole",
+                "path": "infra-stack/SupportEngineerRole/ImportSupportEngineerRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.59.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "infra-stack/SupportEngineerRole/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:props": {
+                    "assumeRolePolicyDocument": {
+                      "Statement": [
+                        {
+                          "Action": "sts:AssumeRole",
+                          "Effect": "Allow",
+                          "Principal": {
+                            "AWS": "arn:aws:iam::593177338706:user/Admin"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    },
+                    "roleName": "SupportEngineerRole"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "version": "2.59.0"
+                }
+              },
+              "DefaultPolicy": {
+                "id": "DefaultPolicy",
+                "path": "infra-stack/SupportEngineerRole/DefaultPolicy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "infra-stack/SupportEngineerRole/DefaultPolicy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                      "aws:cdk:cloudformation:props": {
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "s3:GetObject",
+                                "s3:ListBucket",
+                                "s3:PutObject"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::GetAtt": [
+                                  "ApprovedArtifactsBucketA66E700D",
+                                  "Arn"
+                                ]
+                              }
+                            },
+                            {
+                              "Action": [
+                                "dynamodb:BatchGetItem",
+                                "dynamodb:ConditionCheckItem",
+                                "dynamodb:DescribeTable",
+                                "dynamodb:GetItem",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:Query",
+                                "dynamodb:Scan"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "posdannouncementstableCACBA7F5",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Ref": "AWS::NoValue"
+                                }
+                              ]
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "policyName": "SupportEngineerRoleDefaultPolicy0358290E",
+                        "roles": [
+                          {
+                            "Ref": "SupportEngineerRoleC63476AA"
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                      "version": "2.59.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Policy",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "version": "2.59.0"
+            }
+          },
+          "HumanResourcesRole": {
+            "id": "HumanResourcesRole",
+            "path": "infra-stack/HumanResourcesRole",
+            "children": {
+              "ImportHumanResourcesRole": {
+                "id": "ImportHumanResourcesRole",
+                "path": "infra-stack/HumanResourcesRole/ImportHumanResourcesRole",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.Resource",
+                  "version": "2.59.0"
+                }
+              },
+              "Resource": {
+                "id": "Resource",
+                "path": "infra-stack/HumanResourcesRole/Resource",
+                "attributes": {
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:props": {
+                    "assumeRolePolicyDocument": {
+                      "Statement": [
+                        {
+                          "Action": "sts:AssumeRole",
+                          "Effect": "Allow",
+                          "Principal": {
+                            "AWS": "arn:aws:iam::593177338706:user/Admin"
+                          }
+                        }
+                      ],
+                      "Version": "2012-10-17"
+                    },
+                    "roleName": "HumanResourcesRole"
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "version": "2.59.0"
+                }
+              },
+              "DefaultPolicy": {
+                "id": "DefaultPolicy",
+                "path": "infra-stack/HumanResourcesRole/DefaultPolicy",
+                "children": {
+                  "Resource": {
+                    "id": "Resource",
+                    "path": "infra-stack/HumanResourcesRole/DefaultPolicy/Resource",
+                    "attributes": {
+                      "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
+                      "aws:cdk:cloudformation:props": {
+                        "policyDocument": {
+                          "Statement": [
+                            {
+                              "Action": [
+                                "dynamodb:BatchGetItem",
+                                "dynamodb:BatchWriteItem",
+                                "dynamodb:ConditionCheckItem",
+                                "dynamodb:DeleteItem",
+                                "dynamodb:DescribeTable",
+                                "dynamodb:GetItem",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:PutItem",
+                                "dynamodb:Query",
+                                "dynamodb:Scan",
+                                "dynamodb:UpdateItem"
+                              ],
+                              "Effect": "Allow",
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "posdannouncementstableCACBA7F5",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Ref": "AWS::NoValue"
+                                }
+                              ]
+                            }
+                          ],
+                          "Version": "2012-10-17"
+                        },
+                        "policyName": "HumanResourcesRoleDefaultPolicyE691046D",
+                        "roles": [
+                          {
+                            "Ref": "HumanResourcesRoleE413CEC3"
+                          }
+                        ]
+                      }
+                    },
+                    "constructInfo": {
+                      "fqn": "aws-cdk-lib.aws_iam.CfnPolicy",
+                      "version": "2.59.0"
+                    }
+                  }
+                },
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.aws_iam.Policy",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "version": "2.59.0"
+            }
+          },
+          "CDKMetadata": {
+            "id": "CDKMetadata",
+            "path": "infra-stack/CDKMetadata",
+            "children": {
+              "Default": {
+                "id": "Default",
+                "path": "infra-stack/CDKMetadata/Default",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnResource",
+                  "version": "2.59.0"
+                }
+              },
+              "Condition": {
+                "id": "Condition",
+                "path": "infra-stack/CDKMetadata/Condition",
+                "constructInfo": {
+                  "fqn": "aws-cdk-lib.CfnCondition",
+                  "version": "2.59.0"
+                }
+              }
+            },
+            "constructInfo": {
+              "fqn": "constructs.Construct",
+              "version": "10.1.216"
+            }
+          },
+          "BootstrapVersion": {
+            "id": "BootstrapVersion",
+            "path": "infra-stack/BootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnParameter",
+              "version": "2.59.0"
+            }
+          },
+          "CheckBootstrapVersion": {
+            "id": "CheckBootstrapVersion",
+            "path": "infra-stack/CheckBootstrapVersion",
+            "constructInfo": {
+              "fqn": "aws-cdk-lib.CfnRule",
+              "version": "2.59.0"
+            }
+          }
+        },
+        "constructInfo": {
+          "fqn": "aws-cdk-lib.Stack",
+          "version": "2.59.0"
+        }
+      },
+      "Tree": {
+        "id": "Tree",
+        "path": "Tree",
+        "constructInfo": {
+          "fqn": "constructs.Construct",
+          "version": "10.1.216"
+        }
+      }
+    },
+    "constructInfo": {
+      "fqn": "aws-cdk-lib.App",
+      "version": "2.59.0"
+    }
+  }
+}

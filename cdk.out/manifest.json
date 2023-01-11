@@ -1,0 +1,142 @@
+{
+  "version": "22.0.0",
+  "artifacts": {
+    "infra-stack.assets": {
+      "type": "cdk:asset-manifest",
+      "properties": {
+        "file": "infra-stack.assets.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+      }
+    },
+    "infra-stack": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://unknown-account/unknown-region",
+      "properties": {
+        "templateFile": "infra-stack.template.json",
+        "validateOnSynth": false,
+        "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
+        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e7f47cbe6f7feeec589aff739e932188e0af5be21fb9e5563f039d4063c69a1e.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
+        "additionalDependencies": [
+          "infra-stack.assets"
+        ],
+        "lookupRole": {
+          "arn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-lookup-role-${AWS::AccountId}-${AWS::Region}",
+          "requiresBootstrapStackVersion": 8,
+          "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+        }
+      },
+      "dependencies": [
+        "infra-stack.assets"
+      ],
+      "metadata": {
+        "/infra-stack/ApprovedArtifactsBucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ApprovedArtifactsBucketA66E700D"
+          }
+        ],
+        "/infra-stack/posd-announcements-table/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "posdannouncementstableCACBA7F5"
+          }
+        ],
+        "/infra-stack/MyLambdaFunction/ServiceRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MyLambdaFunctionServiceRole313A4D46"
+          }
+        ],
+        "/infra-stack/MyLambdaFunction/ServiceRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MyLambdaFunctionServiceRoleDefaultPolicy23555F9E"
+          }
+        ],
+        "/infra-stack/MyLambdaFunction/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MyLambdaFunction67CCA873"
+          }
+        ],
+        "/infra-stack/MyLambdaFunction/DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "MyLambdaFunctionDynamoDBEventSourceinfrastackposdannouncementstableA7CCBB7E604EC142"
+          }
+        ],
+        "/infra-stack/EngineerRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EngineerRoleBD333EB3"
+          }
+        ],
+        "/infra-stack/EngineerRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "EngineerRoleDefaultPolicyBBDD1113"
+          }
+        ],
+        "/infra-stack/SupportEngineerRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SupportEngineerRoleC63476AA"
+          }
+        ],
+        "/infra-stack/SupportEngineerRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SupportEngineerRoleDefaultPolicy0358290E"
+          }
+        ],
+        "/infra-stack/HumanResourcesRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "HumanResourcesRoleE413CEC3"
+          }
+        ],
+        "/infra-stack/HumanResourcesRole/DefaultPolicy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "HumanResourcesRoleDefaultPolicyE691046D"
+          }
+        ],
+        "/infra-stack/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/infra-stack/CDKMetadata/Condition": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadataAvailable"
+          }
+        ],
+        "/infra-stack/BootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BootstrapVersion"
+          }
+        ],
+        "/infra-stack/CheckBootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CheckBootstrapVersion"
+          }
+        ]
+      },
+      "displayName": "infra-stack"
+    },
+    "Tree": {
+      "type": "cdk:tree",
+      "properties": {
+        "file": "tree.json"
+      }
+    }
+  }
+}
