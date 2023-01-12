@@ -17,7 +17,7 @@
         "validateOnSynth": false,
         "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-${AWS::Region}",
         "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e7f47cbe6f7feeec589aff739e932188e0af5be21fb9e5563f039d4063c69a1e.json",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/3ca2155bfdb3f129b704eafb09703e0bc57a0d9a2ef7a3cdbd22fb6125f04aa2.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
@@ -69,16 +69,16 @@
             "data": "MyLambdaFunctionDynamoDBEventSourceinfrastackposdannouncementstableA7CCBB7E604EC142"
           }
         ],
-        "/infra-stack/EngineerRole/Resource": [
+        "/infra-stack/EngineeringDepartment/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "EngineerRoleBD333EB3"
+            "data": "EngineeringDepartment745B6A6F"
           }
         ],
-        "/infra-stack/EngineerRole/DefaultPolicy/Resource": [
+        "/infra-stack/EngineeringDepartment/DefaultPolicy/Resource": [
           {
             "type": "aws:cdk:logicalId",
-            "data": "EngineerRoleDefaultPolicyBBDD1113"
+            "data": "EngineeringDepartmentDefaultPolicyCA1584CD"
           }
         ],
         "/infra-stack/SupportEngineerRole/Resource": [

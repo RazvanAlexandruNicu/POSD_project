@@ -182,7 +182,11 @@
                                   ]
                                 },
                                 {
-                                  "Action": "dynamodb:ListStreams",
+                                  "Action": [
+                                    "dynamodb:ListStreams",
+                                    "ses:SendEmail",
+                                    "ses:SendRawEmail"
+                                  ],
                                   "Effect": "Allow",
                                   "Resource": "*"
                                 },
@@ -235,7 +239,7 @@
                   "aws:cdk:cloudformation:type": "AWS::Lambda::Function",
                   "aws:cdk:cloudformation:props": {
                     "code": {
-                      "zipFile": "\n                def handler(event, context):\n                    print(\"Event:\", event)\n                    return {\"message\": \"Successfully wrote event to the console\"}\n                "
+                      "zipFile": "\nimport boto3\n\ndef handler(event, context):\n    # Create an SES client\n    ses = boto3.client('ses')\n\n    event = event['Records'][0]\n    if event['eventName'] == \"INSERT\":\n        date = event['dynamodb']['Keys']['date']['S']\n        message = event['dynamodb']['Keys']['announcement']['S']\n        print(f\"Date: {date}. Announcement: {message}\")\n\n        # Define the email message\n        message = {\n            'Subject': {\n                'Data': 'New Announcement Published',\n                'Charset': 'UTF-8'\n            },\n            'Body': {\n                'Text': {\n                    'Data': f'Date: {date}. Announcement: {message}',\n                    'Charset': 'UTF-8'\n                }\n            }\n        }\n\n        # Send the email\n        ses.send_email(\n            Source='posd.announcements.aws@gmail.com',\n            Destination={'ToAddresses': ['razvanalexandrunicu@gmail.com']},\n            Message=message\n        )\n    return {\"message\": \"Successfully handled event\"}\n"
                     },
                     "role": {
                       "Fn::GetAtt": [
@@ -294,51 +298,31 @@
               "version": "2.59.0"
             }
           },
-          "EngineerRole": {
-            "id": "EngineerRole",
-            "path": "infra-stack/EngineerRole",
+          "EngineeringDepartment": {
+            "id": "EngineeringDepartment",
+            "path": "infra-stack/EngineeringDepartment",
             "children": {
-              "ImportEngineerRole": {
-                "id": "ImportEngineerRole",
-                "path": "infra-stack/EngineerRole/ImportEngineerRole",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.Resource",
-                  "version": "2.59.0"
-                }
-              },
               "Resource": {
                 "id": "Resource",
-                "path": "infra-stack/EngineerRole/Resource",
+                "path": "infra-stack/EngineeringDepartment/Resource",
                 "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Group",
                   "aws:cdk:cloudformation:props": {
-                    "assumeRolePolicyDocument": {
-                      "Statement": [
-                        {
-                          "Action": "sts:AssumeRole",
-                          "Effect": "Allow",
-                          "Principal": {
-                            "AWS": "arn:aws:iam::593177338706:user/Admin"
-                          }
-                        }
-                      ],
-                      "Version": "2012-10-17"
-                    },
-                    "roleName": "EngineerRole"
+                    "groupName": "EngineeringDepartment"
                   }
                 },
                 "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "fqn": "aws-cdk-lib.aws_iam.CfnGroup",
                   "version": "2.59.0"
                 }
               },
               "DefaultPolicy": {
                 "id": "DefaultPolicy",
-                "path": "infra-stack/EngineerRole/DefaultPolicy",
+                "path": "infra-stack/EngineeringDepartment/DefaultPolicy",
                 "children": {
                   "Resource": {
                     "id": "Resource",
-                    "path": "infra-stack/EngineerRole/DefaultPolicy/Resource",
+                    "path": "infra-stack/EngineeringDepartment/DefaultPolicy/Resource",
                     "attributes": {
                       "aws:cdk:cloudformation:type": "AWS::IAM::Policy",
                       "aws:cdk:cloudformation:props": {
@@ -346,14 +330,32 @@
                           "Statement": [
                             {
                               "Action": [
-                                "s3:GetObject",
-                                "s3:ListBucket"
+                                "s3:Get*",
+                                "s3:List*"
                               ],
                               "Effect": "Allow",
                               "Resource": {
                                 "Fn::GetAtt": [
                                   "ApprovedArtifactsBucketA66E700D",
                                   "Arn"
+                                ]
+                              }
+                            },
+                            {
+                              "Action": "s3:Get*",
+                              "Effect": "Allow",
+                              "Resource": {
+                                "Fn::Join": [
+                                  "",
+                                  [
+                                    {
+                                      "Fn::GetAtt": [
+                                        "ApprovedArtifactsBucketA66E700D",
+                                        "Arn"
+                                      ]
+                                    },
+                                    "/*"
+                                  ]
                                 ]
                               }
                             },
@@ -384,10 +386,10 @@
                           ],
                           "Version": "2012-10-17"
                         },
-                        "policyName": "EngineerRoleDefaultPolicyBBDD1113",
-                        "roles": [
+                        "policyName": "EngineeringDepartmentDefaultPolicyCA1584CD",
+                        "groups": [
                           {
-                            "Ref": "EngineerRoleBD333EB3"
+                            "Ref": "EngineeringDepartment745B6A6F"
                           }
                         ]
                       }
@@ -405,7 +407,7 @@
               }
             },
             "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "fqn": "aws-cdk-lib.aws_iam.Group",
               "version": "2.59.0"
             }
           },
@@ -413,37 +415,17 @@
             "id": "SupportEngineerRole",
             "path": "infra-stack/SupportEngineerRole",
             "children": {
-              "ImportSupportEngineerRole": {
-                "id": "ImportSupportEngineerRole",
-                "path": "infra-stack/SupportEngineerRole/ImportSupportEngineerRole",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.Resource",
-                  "version": "2.59.0"
-                }
-              },
               "Resource": {
                 "id": "Resource",
                 "path": "infra-stack/SupportEngineerRole/Resource",
                 "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Group",
                   "aws:cdk:cloudformation:props": {
-                    "assumeRolePolicyDocument": {
-                      "Statement": [
-                        {
-                          "Action": "sts:AssumeRole",
-                          "Effect": "Allow",
-                          "Principal": {
-                            "AWS": "arn:aws:iam::593177338706:user/Admin"
-                          }
-                        }
-                      ],
-                      "Version": "2012-10-17"
-                    },
-                    "roleName": "SupportEngineerRole"
+                    "groupName": "SupportEngineeringDepartment"
                   }
                 },
                 "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "fqn": "aws-cdk-lib.aws_iam.CfnGroup",
                   "version": "2.59.0"
                 }
               },
@@ -460,18 +442,30 @@
                         "policyDocument": {
                           "Statement": [
                             {
-                              "Action": [
-                                "s3:GetObject",
-                                "s3:ListBucket",
-                                "s3:PutObject"
-                              ],
+                              "Action": "s3:*",
                               "Effect": "Allow",
-                              "Resource": {
-                                "Fn::GetAtt": [
-                                  "ApprovedArtifactsBucketA66E700D",
-                                  "Arn"
-                                ]
-                              }
+                              "Resource": [
+                                {
+                                  "Fn::GetAtt": [
+                                    "ApprovedArtifactsBucketA66E700D",
+                                    "Arn"
+                                  ]
+                                },
+                                {
+                                  "Fn::Join": [
+                                    "",
+                                    [
+                                      {
+                                        "Fn::GetAtt": [
+                                          "ApprovedArtifactsBucketA66E700D",
+                                          "Arn"
+                                        ]
+                                      },
+                                      "/*"
+                                    ]
+                                  ]
+                                }
+                              ]
                             },
                             {
                               "Action": [
@@ -501,7 +495,7 @@
                           "Version": "2012-10-17"
                         },
                         "policyName": "SupportEngineerRoleDefaultPolicy0358290E",
-                        "roles": [
+                        "groups": [
                           {
                             "Ref": "SupportEngineerRoleC63476AA"
                           }
@@ -521,7 +515,7 @@
               }
             },
             "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "fqn": "aws-cdk-lib.aws_iam.Group",
               "version": "2.59.0"
             }
           },
@@ -529,37 +523,17 @@
             "id": "HumanResourcesRole",
             "path": "infra-stack/HumanResourcesRole",
             "children": {
-              "ImportHumanResourcesRole": {
-                "id": "ImportHumanResourcesRole",
-                "path": "infra-stack/HumanResourcesRole/ImportHumanResourcesRole",
-                "constructInfo": {
-                  "fqn": "aws-cdk-lib.Resource",
-                  "version": "2.59.0"
-                }
-              },
               "Resource": {
                 "id": "Resource",
                 "path": "infra-stack/HumanResourcesRole/Resource",
                 "attributes": {
-                  "aws:cdk:cloudformation:type": "AWS::IAM::Role",
+                  "aws:cdk:cloudformation:type": "AWS::IAM::Group",
                   "aws:cdk:cloudformation:props": {
-                    "assumeRolePolicyDocument": {
-                      "Statement": [
-                        {
-                          "Action": "sts:AssumeRole",
-                          "Effect": "Allow",
-                          "Principal": {
-                            "AWS": "arn:aws:iam::593177338706:user/Admin"
-                          }
-                        }
-                      ],
-                      "Version": "2012-10-17"
-                    },
-                    "roleName": "HumanResourcesRole"
+                    "groupName": "HumanResourcesDepartment"
                   }
                 },
                 "constructInfo": {
-                  "fqn": "aws-cdk-lib.aws_iam.CfnRole",
+                  "fqn": "aws-cdk-lib.aws_iam.CfnGroup",
                   "version": "2.59.0"
                 }
               },
@@ -607,7 +581,7 @@
                           "Version": "2012-10-17"
                         },
                         "policyName": "HumanResourcesRoleDefaultPolicyE691046D",
-                        "roles": [
+                        "groups": [
                           {
                             "Ref": "HumanResourcesRoleE413CEC3"
                           }
@@ -627,7 +601,7 @@
               }
             },
             "constructInfo": {
-              "fqn": "aws-cdk-lib.aws_iam.Role",
+              "fqn": "aws-cdk-lib.aws_iam.Group",
               "version": "2.59.0"
             }
           },

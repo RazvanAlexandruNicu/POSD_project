@@ -112,7 +112,11 @@
        ]
       },
       {
-       "Action": "dynamodb:ListStreams",
+       "Action": [
+        "dynamodb:ListStreams",
+        "ses:SendEmail",
+        "ses:SendRawEmail"
+       ],
        "Effect": "Allow",
        "Resource": "*"
       },
@@ -148,7 +152,7 @@
    "Type": "AWS::Lambda::Function",
    "Properties": {
     "Code": {
-     "ZipFile": "\n                def handler(event, context):\n                    print(\"Event:\", event)\n                    return {\"message\": \"Successfully wrote event to the console\"}\n                "
+     "ZipFile": "\nimport boto3\n\ndef handler(event, context):\n    # Create an SES client\n    ses = boto3.client('ses')\n\n    event = event['Records'][0]\n    if event['eventName'] == \"INSERT\":\n        date = event['dynamodb']['Keys']['date']['S']\n        message = event['dynamodb']['Keys']['announcement']['S']\n        print(f\"Date: {date}. Announcement: {message}\")\n\n        # Define the email message\n        message = {\n            'Subject': {\n                'Data': 'New Announcement Published',\n                'Charset': 'UTF-8'\n            },\n            'Body': {\n                'Text': {\n                    'Data': f'Date: {date}. Announcement: {message}',\n                    'Charset': 'UTF-8'\n                }\n            }\n        }\n\n        # Send the email\n        ses.send_email(\n            Source='posd.announcements.aws@gmail.com',\n            Destination={'ToAddresses': ['razvanalexandrunicu@gmail.com']},\n            Message=message\n        )\n    return {\"message\": \"Successfully handled event\"}\n"
     },
     "Role": {
      "Fn::GetAtt": [
@@ -188,42 +192,48 @@
     "aws:cdk:path": "infra-stack/MyLambdaFunction/DynamoDBEventSource:infrastackposdannouncementstableA7CCBB7E/Resource"
    }
   },
-  "EngineerRoleBD333EB3": {
-   "Type": "AWS::IAM::Role",
+  "EngineeringDepartment745B6A6F": {
+   "Type": "AWS::IAM::Group",
    "Properties": {
-    "AssumeRolePolicyDocument": {
-     "Statement": [
-      {
-       "Action": "sts:AssumeRole",
-       "Effect": "Allow",
-       "Principal": {
-        "AWS": "arn:aws:iam::593177338706:user/Admin"
-       }
-      }
-     ],
-     "Version": "2012-10-17"
-    },
-    "RoleName": "EngineerRole"
+    "GroupName": "EngineeringDepartment"
    },
    "Metadata": {
-    "aws:cdk:path": "infra-stack/EngineerRole/Resource"
+    "aws:cdk:path": "infra-stack/EngineeringDepartment/Resource"
    }
   },
-  "EngineerRoleDefaultPolicyBBDD1113": {
+  "EngineeringDepartmentDefaultPolicyCA1584CD": {
    "Type": "AWS::IAM::Policy",
    "Properties": {
     "PolicyDocument": {
      "Statement": [
       {
        "Action": [
-        "s3:GetObject",
-        "s3:ListBucket"
+        "s3:Get*",
+        "s3:List*"
        ],
        "Effect": "Allow",
        "Resource": {
         "Fn::GetAtt": [
          "ApprovedArtifactsBucketA66E700D",
          "Arn"
+        ]
+       }
+      },
+      {
+       "Action": "s3:Get*",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          {
+           "Fn::GetAtt": [
+            "ApprovedArtifactsBucketA66E700D",
+            "Arn"
+           ]
+          },
+          "/*"
+         ]
         ]
        }
       },
@@ -254,33 +264,21 @@
      ],
      "Version": "2012-10-17"
     },
-    "PolicyName": "EngineerRoleDefaultPolicyBBDD1113",
-    "Roles": [
+    "PolicyName": "EngineeringDepartmentDefaultPolicyCA1584CD",
+    "Groups": [
      {
-      "Ref": "EngineerRoleBD333EB3"
+      "Ref": "EngineeringDepartment745B6A6F"
      }
     ]
    },
    "Metadata": {
-    "aws:cdk:path": "infra-stack/EngineerRole/DefaultPolicy/Resource"
+    "aws:cdk:path": "infra-stack/EngineeringDepartment/DefaultPolicy/Resource"
    }
   },
   "SupportEngineerRoleC63476AA": {
-   "Type": "AWS::IAM::Role",
+   "Type": "AWS::IAM::Group",
    "Properties": {
-    "AssumeRolePolicyDocument": {
-     "Statement": [
-      {
-       "Action": "sts:AssumeRole",
-       "Effect": "Allow",
-       "Principal": {
-        "AWS": "arn:aws:iam::593177338706:user/Admin"
-       }
-      }
-     ],
-     "Version": "2012-10-17"
-    },
-    "RoleName": "SupportEngineerRole"
+    "GroupName": "SupportEngineeringDepartment"
    },
    "Metadata": {
     "aws:cdk:path": "infra-stack/SupportEngineerRole/Resource"
@@ -292,18 +290,30 @@
     "PolicyDocument": {
      "Statement": [
       {
-       "Action": [
-        "s3:GetObject",
-        "s3:ListBucket",
-        "s3:PutObject"
-       ],
+       "Action": "s3:*",
        "Effect": "Allow",
-       "Resource": {
-        "Fn::GetAtt": [
-         "ApprovedArtifactsBucketA66E700D",
-         "Arn"
-        ]
-       }
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "ApprovedArtifactsBucketA66E700D",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "ApprovedArtifactsBucketA66E700D",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
       },
       {
        "Action": [
@@ -333,7 +343,7 @@
      "Version": "2012-10-17"
     },
     "PolicyName": "SupportEngineerRoleDefaultPolicy0358290E",
-    "Roles": [
+    "Groups": [
      {
       "Ref": "SupportEngineerRoleC63476AA"
      }
@@ -344,21 +354,9 @@
    }
   },
   "HumanResourcesRoleE413CEC3": {
-   "Type": "AWS::IAM::Role",
+   "Type": "AWS::IAM::Group",
    "Properties": {
-    "AssumeRolePolicyDocument": {
-     "Statement": [
-      {
-       "Action": "sts:AssumeRole",
-       "Effect": "Allow",
-       "Principal": {
-        "AWS": "arn:aws:iam::593177338706:user/Admin"
-       }
-      }
-     ],
-     "Version": "2012-10-17"
-    },
-    "RoleName": "HumanResourcesRole"
+    "GroupName": "HumanResourcesDepartment"
    },
    "Metadata": {
     "aws:cdk:path": "infra-stack/HumanResourcesRole/Resource"
@@ -401,7 +399,7 @@
      "Version": "2012-10-17"
     },
     "PolicyName": "HumanResourcesRoleDefaultPolicyE691046D",
-    "Roles": [
+    "Groups": [
      {
       "Ref": "HumanResourcesRoleE413CEC3"
      }
@@ -414,7 +412,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WNwQrCMBBEv8V7uopFoVeL3oTSepc0ibq23ZQ2VUrIv9skIIKneTszu7uFXQabFX+PiZBN0mINtjJcNGyxrnZMwR4m0SjD8htFckzOxDstl+qF163yUQDHWt7VkoM9TSQMavLRl48vRabS0yDUmfc90t3H/65jyDuwpY6ngxa6RTH7MZJzrFRj2AqdH841SfQPHStm89C0TiGD/eo5IibDRAY7BWXUDzgKN+3/AAAA"
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/2WNwQrCMBBEv6X3dBVFoVdFPQnSepc0ibq23ZQ2UUrIv9ukIoKneTuzO7uAVQbzhL/6VMgqrbEEVxguKjZaF9cvwW2sqJRh2ytN5JkciDdajqtnXtYqRBE8q3lTSg5ub0kY1BSiL++eikyhbSfUkbct0i3E/65nyBtwuZ6qo550jWII44cOnbZtmCN4z3LVx5J48sNbTRLDf89Og7lrmi0hg3Xy6BHTzpLBRkE+6RvNiXf2DgEAAA=="
    },
    "Metadata": {
     "aws:cdk:path": "infra-stack/CDKMetadata/Default"
