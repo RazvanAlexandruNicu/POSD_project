@@ -25,7 +25,7 @@ iam = boto3.client('iam', region_name='us-east-1', aws_access_key_id=ACCESS_KEY,
 def list_objects(bucket_name):
     response = s3.list_objects(Bucket=bucket_name)
     objects = [content['Key'] for content in response.get('Contents', [])]
-    print(f"Artifact List in bucket: ")
+    print(f"Available artifacts: ")
     for object in objects:
         print(object)
 
@@ -35,15 +35,21 @@ def upload_to_bucket(bucket_name, file_name):
         s3.upload_fileobj(data, bucket_name, file_name)
     print(f"Artifact {file_name} has been uploaded.")
 
+def get_from_bucket(file_name):
+    with open(f'./{file_name}', 'wb') as f:
+        s3.download_fileobj(BUCKET, file_name, f)
+    print(f"Artifact {file_name} has been downloaded.")
+
 # Delete file from S3 bucket
 def delete_from_bucket(bucket_name, file_name):
     s3.delete_object(Bucket=bucket_name, Key=file_name)
-    print(f"{file_name} has been deleted from bucket.")
+    print(f"The {file_name} artifact has been removed.")
 
 # List items from a Dynamo DB tbable
 def list_items(table_name):
     response = dynamodb.scan(TableName=table_name)
     items = response['Items']
+    print("Announcements:")
     for item in items:
         print(f"{item['date']['S']}: {item['announcement']['S']}")
 
@@ -54,7 +60,7 @@ def insert_item(table_name, announcement, date):
         'date': {'S': date}
     }
     dynamodb.put_item(TableName=table_name, Item=item)
-    print("The announcement has been inserted into table.")
+    print("The announcement has been published.")
 
 # Adding user to departmet
 def add_user_to_department(user_name, department_name):
@@ -66,16 +72,38 @@ def delete_user_from_department(user_name,department_name):
     iam.remove_user_from_group(GroupName=department_name, UserName=user_name)
     print("User %s has been removed from department %s." % (user_name, department_name))
 
+def help_posd():
+    print("The available commands are:\n")
+    print("* list_artifacts - List the approved artifacts uploaded by the Support Engineering Team")
+    print("\n* upload_artifact [artifact_name] - Upload a new approved artifact. This will give instant access to it for all Engineering department members")
+    print("\n* download_artifact [artifact_name] - Download an approved artifact.")
+    print("\n* delete_artifact [artifact_name] - Delete an existing approved artifact. This will instantly remove access to it for all Engineering department members")
+    print("\n* list_announcements - List all public anouncements in the company")
+    print("\n* insert_announcement [announcement] [date] - Publish a public announcement for all company members. This will send an email to all the subscribed employees")
+    print("\n* add_user_to_department [user_name] [department_name] - Administrator only. Add a user to an existing department. Available department options: [HumanResourcesDepartment, EngineeringDepartment, SupportEngineeringDepartment]")
+    print("\n* delete_user_from_department [user_name] [department_name] - Administrator only. Remove a user from an existing department. Available department options: [HumanResourcesDepartment, EngineeringDepartment, SupportEngineeringDepartment]")
 
+if len(sys.argv) == 1:
+    help_posd()
+    sys.exit()
 cmd = sys.argv[1]
+
 if cmd == 'list_artifacts':
-   
     try:
         list_objects(BUCKET)
     except:
         print("You do not have the right permissios to list artifacts.")
         print("Only the following departments are allowed to do this:")
         print("[ENGINEERING], [SUPPORT ENGINEERING]")
+
+elif cmd == 'download_artifact':
+    file_name = sys.argv[2]
+    try:
+        get_from_bucket(file_name)
+    except:
+        print("You do not have the right permissios to download artifacts.")
+        print("Only the following departments are allowed to do this:")
+        print("[SUPPORT ENGINEERING], [ENGINEERING]")
 
 elif cmd == 'upload_artifact':
     file_name = sys.argv[2]
@@ -96,7 +124,12 @@ elif cmd == 'delete_artifact':
         print("[SUPPORT ENGINEERING]")
 
 elif cmd == 'list_announcements':
-    list_items(DYNAMO)
+    try:
+        list_items(DYNAMO)
+    except:
+        print("You do not have the right permissios to see annuncements.")
+        print("Only the following departments are allowed to do this:")
+        print("[HUMAN RESOURCES], [SUPPORT ENGINEERING], [ENGINEERING]")
 
 elif cmd == 'insert_announcement':
     announcement = sys.argv[2]
@@ -126,23 +159,15 @@ elif cmd == 'delete_user_from_department':
         print("You do not have the permissios to delete a user from a department.")
         print("Only an administrtor is able to perform this action")
 elif cmd == 'help':
-    print("The available commands are:\n")
-    print("* list_artifacts - List the approved artifacts uploaded by the Support Engineering Team")
-    print("\n* upload_artifact [artifact_name] - Upload a new approved artifact. This will give instant access to it for all Engineering department members")
-    print("\n* delete_artifact [artifact_name] - Delete an existing approved artifact. This will instantly remove access to it for all Engineering department members")
-    print("\n* list_announcements - List all public anouncements in the company")
-    print("\n* insert_announcement [announcement] [date] - Publish a public announcement for all company members. This will send an email to all the subscribed employees")
-    print("\n* add_user_to_department [user_name] [department_name] - Administrator only. Add a user to an existing department. Available department options: [HumanResourcesDepartment, EngineeringDepartment, SupportEngineeringDepartment]")
-    print("\n* delete_user_from_department [user_name] [department_name] - Administrator only. Remove a user from an existing department. Available department options: [HumanResourcesDepartment, EngineeringDepartment, SupportEngineeringDepartment]")
+    help_posd()    
 else:
     print("Invalid command. Please use the help command to learn about the possible commands. The available commands are:")
     print("list_artifacts")
     print("upload_artifact [artifact_name]")
+    print("download_artifact [artifact_name]")
     print("delete_artifact [artifact_name]")
     print("list_announcements")
     print("insert_announcement [announcement] [date]")
     print("add_user_to_department [user_name] [department_name]")
     print("delete_user_from_department [user_name] [department_name]")
-
-
 
